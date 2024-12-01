@@ -40,8 +40,8 @@ class Flight:
     """
     The Flight class
     ================
-    Version: 3.40
-    Last update: 30/11/24
+    Version: 3.45
+    Last update: 01/12/24
     -----------------------
     Gabriel Mesquida Masana
     gabmm@stanford.edu
@@ -1891,6 +1891,7 @@ class Flight:
         lon_min = transform["lon_min"]
         alt_max = transform["alt_max"]
         alt_min = transform["alt_min"]
+        steps_max = transform["steps_max"]
 
         self.match["Trk_Lat_norm"] = (self.match["Trk_Lat"] - lat_min) / (
             lat_max - lat_min
@@ -1910,6 +1911,7 @@ class Flight:
         self.match["Prj_Alt_norm"] = (self.match["Prj_Alt"] - alt_min) / (
             alt_max - alt_min
         )
+        self.match["Steps_norm"] = self.match.index / steps_max
         self.additional["match_geo_transform"] = transform
         return self
 
@@ -1961,6 +1963,7 @@ class Flight:
         n_min = transform["n_min"]
         u_max = transform["u_max"]
         u_min = transform["u_min"]
+        steps_max = transform["steps_max"]
 
         self.match["Trk_E_norm"] = (self.match["Trk_E"] - e_min) / (
             e_max - e_min
@@ -1980,6 +1983,7 @@ class Flight:
         self.match["Prj_U_norm"] = (self.match["Prj_U"] - u_min) / (
             u_max - u_min
         )
+        self.match["Steps_norm"] = self.match.index / steps_max
         self.additional["match_enu_transform"] = transform
 
     def full_match_to_enu_transform(self, transform: dict) -> Self:
@@ -1999,7 +2003,9 @@ class Flight:
         return self
 
     @staticmethod
-    def undo_transform(data: np.array, transform: dict) -> np.array:
+    def undo_transform(
+        data: np.array, transform: dict, steps: bool = False
+    ) -> np.array:
         """
         Undoes the transform above for a numpy array [N,3]
         """
@@ -2016,6 +2022,12 @@ class Flight:
         data[:, 1] += n_min
         data[:, 2] *= u_max - u_min
         data[:, 2] += u_min
+
+        # If time is included
+        if steps:
+            steps_max = transform["steps_max"]
+            data[:, 3] *= steps_max
+
         return data
 
     @staticmethod

@@ -21,8 +21,8 @@ class Scene:
     """
     The Scene class
     ================
-    Version: 1.40
-    Last update: 30/11/24
+    Version: 1.45
+    Last update: 01/12/24
     -----------------------
     Gabriel Mesquida Masana
     gabmm@stanford.edu
@@ -530,12 +530,13 @@ class Scene:
         Normalises geodetic projections and tracks
         """
         # Scan all training set
-        lat_max = max([flight.match["Trk_E"].max() for flight in self.flights])
-        lat_min = min([flight.match["Trk_E"].min() for flight in self.flights])
-        lon_max = max([flight.match["Trk_N"].max() for flight in self.flights])
-        lon_min = min([flight.match["Trk_N"].min() for flight in self.flights])
-        alt_max = max([flight.match["Trk_U"].max() for flight in self.flights])
-        alt_min = min([flight.match["Trk_U"].min() for flight in self.flights])
+        lat_max = max([flight.match["Trk_Lat"].max() for flight in self])
+        lat_min = min([flight.match["Trk_Lat"].min() for flight in self])
+        lon_max = max([flight.match["Trk_Lon"].max() for flight in self])
+        lon_min = min([flight.match["Trk_Lon"].min() for flight in self])
+        alt_max = max([flight.match["Trk_Alt"].max() for flight in self])
+        alt_min = min([flight.match["Trk_Alt"].min() for flight in self])
+        steps_max = max([len(flight.match) for flight in self])
 
         # Store the dictionary of the transformation
         transform = {
@@ -545,12 +546,13 @@ class Scene:
             "lon_min": float(lon_min),
             "alt_max": float(alt_max),
             "alt_min": float(alt_min),
+            "steps_max": steps_max,
         }
         for flight in self.flights:
             flight.match_geo_transform(transform)
 
         self.notes += f", geodetic standardisation added"
-        self.match_transform = transform
+        self.match_geo_transform = transform
         return self
 
     def match_standardise_enu(self) -> Self:
@@ -558,12 +560,13 @@ class Scene:
         Normalises ENU projections and tracks
         """
         # Scan all training set
-        e_max = max([flight.match["Trk_E"].max() for flight in self.flights])
-        e_min = min([flight.match["Trk_E"].min() for flight in self.flights])
-        n_max = max([flight.match["Trk_N"].max() for flight in self.flights])
-        n_min = min([flight.match["Trk_N"].min() for flight in self.flights])
-        u_max = max([flight.match["Trk_U"].max() for flight in self.flights])
-        u_min = min([flight.match["Trk_U"].min() for flight in self.flights])
+        e_max = max([flight.match["Trk_E"].max() for flight in self])
+        e_min = min([flight.match["Trk_E"].min() for flight in self])
+        n_max = max([flight.match["Trk_N"].max() for flight in self])
+        n_min = min([flight.match["Trk_N"].min() for flight in self])
+        u_max = max([flight.match["Trk_U"].max() for flight in self])
+        u_min = min([flight.match["Trk_U"].min() for flight in self])
+        steps_max = max([len(flight.match) for flight in self])
 
         # Store the dictionary of the transformation
         transform = {
@@ -573,12 +576,13 @@ class Scene:
             "n_min": float(n_min),
             "u_max": float(u_max),
             "u_min": float(u_min),
+            "steps_max": steps_max,
         }
         for flight in self.flights:
             flight.match_enu_transform(transform)
 
         self.notes += f", ENU standardisation added"
-        self.match_transform = transform
+        self.match_enu_transform = transform
         return self
 
     def plot(
@@ -652,6 +656,9 @@ class Scene:
     #
     def __iter__(self) -> Iterator[Fl]:
         return iter(self.flights)
+
+    def __getitem__(self, key: int) -> Fl:
+        return self.flights[key]
 
     def __repr__(self) -> str:
         return f"Scene with {len(self.flights)} flights, {self.notes}."
