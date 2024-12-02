@@ -21,8 +21,8 @@ class Scene:
     """
     The Scene class
     ================
-    Version: 1.45
-    Last update: 01/12/24
+    Version: 1.46
+    Last update: 02/12/24
     -----------------------
     Gabriel Mesquida Masana
     gabmm@stanford.edu
@@ -525,7 +525,7 @@ class Scene:
         self.notes += f", converted Geodesic to ENU"
         return self
 
-    def match_standardise_geo(self) -> Self:
+    def match_standardise_geo(self, factor: int = 1) -> Self:
         """
         Normalises geodetic projections and tracks
         """
@@ -547,6 +547,7 @@ class Scene:
             "alt_max": float(alt_max),
             "alt_min": float(alt_min),
             "steps_max": steps_max,
+            "factor": factor,
         }
         for flight in self.flights:
             flight.match_geo_transform(transform)
@@ -555,7 +556,7 @@ class Scene:
         self.match_geo_transform = transform
         return self
 
-    def match_standardise_enu(self) -> Self:
+    def match_standardise_enu(self, factor: int = 1) -> Self:
         """
         Normalises ENU projections and tracks
         """
@@ -577,6 +578,7 @@ class Scene:
             "u_max": float(u_max),
             "u_min": float(u_min),
             "steps_max": steps_max,
+            "factor": factor,
         }
         for flight in self.flights:
             flight.match_enu_transform(transform)

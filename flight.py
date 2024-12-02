@@ -40,8 +40,8 @@ class Flight:
     """
     The Flight class
     ================
-    Version: 3.45
-    Last update: 01/12/24
+    Version: 3.46
+    Last update: 02/12/24
     -----------------------
     Gabriel Mesquida Masana
     gabmm@stanford.edu
@@ -1893,23 +1893,28 @@ class Flight:
         alt_min = transform["alt_min"]
         steps_max = transform["steps_max"]
 
-        self.match["Trk_Lat_norm"] = (self.match["Trk_Lat"] - lat_min) / (
-            lat_max - lat_min
+        if "factor" in transform:
+            factor = transform["factor"]
+        else:
+            factor = 1
+
+        self.match["Trk_Lat_norm"] = (
+            (self.match["Trk_Lat"] - lat_min) / (lat_max - lat_min) * factor
         )
-        self.match["Trk_Lon_norm"] = (self.match["Trk_Lon"] - lon_min) / (
-            lon_max - lon_min
+        self.match["Trk_Lon_norm"] = (
+            (self.match["Trk_Lon"] - lon_min) / (lon_max - lon_min) * factor
         )
-        self.match["Trk_Alt_norm"] = (self.match["Trk_Alt"] - alt_min) / (
-            alt_max - alt_min
+        self.match["Trk_Alt_norm"] = (
+            (self.match["Trk_Alt"] - alt_min) / (alt_max - alt_min) * factor
         )
-        self.match["Prj_Lat_norm"] = (self.match["Prj_Lat"] - lat_min) / (
-            lat_max - lat_min
+        self.match["Prj_Lat_norm"] = (
+            (self.match["Prj_Lat"] - lat_min) / (lat_max - lat_min) * factor
         )
-        self.match["Prj_Lon_norm"] = (self.match["Prj_Lon"] - lon_min) / (
-            lon_max - lon_min
+        self.match["Prj_Lon_norm"] = (
+            (self.match["Prj_Lon"] - lon_min) / (lon_max - lon_min) * factor
         )
-        self.match["Prj_Alt_norm"] = (self.match["Prj_Alt"] - alt_min) / (
-            alt_max - alt_min
+        self.match["Prj_Alt_norm"] = (
+            (self.match["Prj_Alt"] - alt_min) / (alt_max - alt_min) * factor
         )
         self.match["Steps_norm"] = self.match.index / steps_max
         self.additional["match_geo_transform"] = transform
@@ -1965,23 +1970,28 @@ class Flight:
         u_min = transform["u_min"]
         steps_max = transform["steps_max"]
 
-        self.match["Trk_E_norm"] = (self.match["Trk_E"] - e_min) / (
-            e_max - e_min
+        if "factor" in transform:
+            factor = transform["factor"]
+        else:
+            factor = 1
+
+        self.match["Trk_E_norm"] = (
+            (self.match["Trk_E"] - e_min) / (e_max - e_min) * factor
         )
-        self.match["Trk_N_norm"] = (self.match["Trk_N"] - n_min) / (
-            n_max - n_min
+        self.match["Trk_N_norm"] = (
+            (self.match["Trk_N"] - n_min) / (n_max - n_min) * factor
         )
-        self.match["Trk_U_norm"] = (self.match["Trk_U"] - u_min) / (
-            u_max - u_min
+        self.match["Trk_U_norm"] = (
+            (self.match["Trk_U"] - u_min) / (u_max - u_min) * factor
         )
-        self.match["Prj_E_norm"] = (self.match["Prj_E"] - e_min) / (
-            e_max - e_min
+        self.match["Prj_E_norm"] = (
+            (self.match["Prj_E"] - e_min) / (e_max - e_min) * factor
         )
-        self.match["Prj_N_norm"] = (self.match["Prj_N"] - n_min) / (
-            n_max - n_min
+        self.match["Prj_N_norm"] = (
+            (self.match["Prj_N"] - n_min) / (n_max - n_min) * factor
         )
-        self.match["Prj_U_norm"] = (self.match["Prj_U"] - u_min) / (
-            u_max - u_min
+        self.match["Prj_U_norm"] = (
+            (self.match["Prj_U"] - u_min) / (u_max - u_min) * factor
         )
         self.match["Steps_norm"] = self.match.index / steps_max
         self.additional["match_enu_transform"] = transform
@@ -2003,9 +2013,7 @@ class Flight:
         return self
 
     @staticmethod
-    def undo_transform(
-        data: np.array, transform: dict, steps: bool = False
-    ) -> np.array:
+    def undo_transform(data: np.array, transform: dict) -> np.array:
         """
         Undoes the transform above for a numpy array [N,3]
         """
@@ -2016,17 +2024,20 @@ class Flight:
         u_max = transform["u_max"]
         u_min = transform["u_min"]
 
+        if "factor" in transform:
+            factor = transform["factor"]
+        else:
+            factor = 1
+
+        data[:, 0] /= factor
         data[:, 0] *= e_max - e_min
         data[:, 0] += e_min
+        data[:, 1] /= factor
         data[:, 1] *= n_max - n_min
         data[:, 1] += n_min
+        data[:, 2] /= factor
         data[:, 2] *= u_max - u_min
         data[:, 2] += u_min
-
-        # If time is included
-        if steps:
-            steps_max = transform["steps_max"]
-            data[:, 3] *= steps_max
 
         return data
 
@@ -3029,6 +3040,12 @@ class Flight:
         plt.tight_layout()
         plt.show()
 
+    @staticmethod
+    def filter_nones(
+        incoming: list[tuple[pd.array, pd.array] | None],
+    ) -> list[tuple[pd.array, pd.array]]:
+        return filter(lambda element: element is not None, incoming)
+
     def plot_match(
         self,
         geo: bool = True,
@@ -3075,7 +3092,7 @@ class Flight:
                 if additional:
                     if isinstance(object, tuple):
                         additional = [additional]
-                    for d, t in additional:
+                    for d, t in Flight.filter_nones(additional):
                         ax1.plot(  # e
                             t,
                             d[:, 0],
@@ -3114,6 +3131,25 @@ class Flight:
                         ax=ax3,
                         color=color[4:6],
                     )
+                    if additional:
+                        if isinstance(object, tuple):
+                            additional = [additional]
+                        for d, t in Flight.filter_nones(additional):
+                            ax1.plot(  # e
+                                t,
+                                d[:, 1],
+                                "b",
+                            )
+                            ax2.plot(  # n
+                                t,
+                                d[:, 0],
+                                "g",
+                            )
+                            ax3.plot(  # u
+                                t,
+                                d[:, 2],
+                                "r",
+                            )
                 else:
                     self.match.plot(
                         x="Unix",
@@ -3136,7 +3172,7 @@ class Flight:
                     if additional:
                         if isinstance(object, tuple):
                             additional = [additional]
-                        for d, t in additional:
+                        for d, t in Flight.filter_nones(additional):
                             ax1.plot(  # e
                                 t,
                                 d[:, 1],
